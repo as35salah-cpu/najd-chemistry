@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كيمياء نجد - النظام المتكامل لتوريد الخامات</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] },
+                    colors: {
+                        brand: { 
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 
+                            800: '#075985', 900: '#0c4a6e' 
+                        },
+                        tech: { gray: '#1e293b', light: '#f8fafc', border: '#e2e8f0' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { scroll-behavior: smooth; }
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 6px; border: 3px solid #f1f5f9; }
+        ::-webkit-scrollbar-thumb:hover { background: #0369a1; }
+
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.9s cubic-bezier(0.5, 0, 0, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+
+        .tech-card {
+            transition: all 0.4s ease;
+            position: relative;
+            background: #fff;
+            z-index: 1;
+        }
+        .tech-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0ea5e9, #0284c7);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.4s ease;
+            z-index: 2;
+        }
+        .tech-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px -10px rgba(2, 132, 199, 0.15);
+            border-color: #bae6fd;
+        }
+        .tech-card:hover::before { transform: scaleX(1); }
+        
+        .tech-icon-bg {
+            background-image: radial-gradient(circle at center, #f0f9ff 0%, #fff 70%);
+        }
+
+        .spec-table w-full { border-collapse: separate; border-spacing: 0; }
+        .spec-table tr:not(:last-child) td { border-bottom: 1px dashed #e2e8f0; }
+
+        .step-indicator { transition: all 0.3s ease; }
+        .step-active { background-color: #0284c7; color: white; border-color: #0284c7; }
+        .step-completed { background-color: #10b981; color: white; border-color: #10b981; }
+        .step-inactive { background-color: white; color: #94a3b8; border-color: #cbd5e1; }
+        
+        .wizard-panel { display: none; animation: fadeInRight 0.5s ease forwards; }
+        .wizard-panel.active { display: block; }
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(2, 132, 199, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(2, 132, 199, 0.05) 1px, transparent 1px);
+        }
+
+        .timeline-container::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            background-color: #e2e8f0;
+            top: 0; bottom: 0; right: 50%;
+            margin-right: -2px;
+        }
+        .timeline-item { position: relative; background-color: inherit; width: 50%; }
+        .right-timeline { right: 0; padding-left: 50px; }
+        .right-timeline::after {
+            content: ''; position: absolute; width: 24px; height: 24px;
+            left: -12px; background-color: white; border: 4px solid #0284c7;
+            top: 24px; border-radius: 50%; z-index: 1;
+        }
+        .left-timeline { right: 50%; padding-right: 50px; }
+        .left-timeline::after {
+            content: ''; position: absolute; width: 24px; height: 24px;
+            right: -12px; background-color: white; border: 4px solid #0284c7;
+            top: 24px; border-radius: 50%; z-index: 1;
+        }
+        @media screen and (max-width: 768px) {
+            .timeline-container::after { right: 31px; }
+            .timeline-item { width: 100%; padding-right: 80px; padding-left: 25px; }
+            .timeline-item::after { right: 19px; top: 24px; }
+            .left-timeline { right: 0; }
+        }
+
+        .filter-btn.active {
+            background-color: #0284c7; color: white; border-color: #0284c7;
+        }
+        .product-item { transition: all 0.4s ease; }
+        .product-item.hidden-item { opacity: 0; transform: scale(0.9); display: none; }
+    </style>
+</head>
+<body class="bg-tech-light text-tech-gray antialiased selection:bg-brand-500 selection:text-white">
+
+    <header id="main-nav" class="fixed w-full z-50 transition-all duration-300 bg-white/90 backdrop-blur-lg border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-24">
+                
+                <a href="#" class="flex items-center gap-4 group">
+                    <div class="relative overflow-hidden rounded-lg bg-white p-1 border border-gray-100 shadow-sm">
+                        <img src="https://i.postimg.cc/BbQr2XLq/kymya-njd.jpg" alt="كيمياء نجد" class="h-14 w-auto object-contain transform group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black text-brand-900 tracking-tight leading-none">كيمياء نجد</h1>
+                        <span class="text-xs font-bold text-gray-500 tracking-wider">حلول البوليمرات الصناعية</span>
+                    </div>
+                </a>
+
+                <nav class="hidden lg:flex items-center space-x-8 space-x-reverse">
+                    <a href="#home" class="text-sm font-bold text-gray-600 hover:text-brand-600 transition-colors">الرئيسية</a>
+                    <a href="#specs" class="text-sm font-bold text-gray-600 hover:text-brand-600 transition-colors">المواصفات الفنية</a>
+                    <a href="#process" class="text-sm font-bold text-gray-600 hover:text-brand-600 transition-colors">آلية التوريد</a>
+                    <a href="#faq" class="text-sm font-bold text-gray-600 hover:text-brand-600 transition-colors">الأسئلة الشائعة</a>
+                </nav>
+
+                <div class="hidden lg:flex items-center gap-4">
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500 font-semibold">المبيعات المباشرة</div>
+                        <div class="text-sm font-black text-brand-700" dir="ltr">+966 50 057 8565</div>
+                    </div>
+                    <button onclick="openWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-500/30 transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                        <i class="fa-solid fa-file-signature"></i> تقديم طلب تسعير
+                    </button>
+                </div>
+
+                <button id="mobile-btn" class="lg:hidden text-gray-600 hover:text-brand-600 text-2xl p-2 focus:outline-none">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden lg:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
+            <div class="px-4 pt-4 pb-8 space-y-3">
+                <a href="#home" class="block px-4 py-3 rounded-lg bg-gray-50 text-brand-700 font-bold">الرئيسية</a>
+                <a href="#specs" class="block px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-700 font-bold">المواصفات الفنية للخامات</a>
+                <a href="#process" class="block px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-700 font-bold">آلية التوريد</a>
+                <button onclick="openWizard()" class="w-full mt-6 bg-brand-600 text-white px-4 py-4 rounded-lg font-bold shadow-md flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-file-signature"></i> تقديم طلب تسعير
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <section id="home" class="relative pt-40 pb-24 lg:pt-52 lg:pb-32 overflow-hidden bg-white">
+        <div class="absolute inset-0 bg-grid-pattern z-0 opacity-40"></div>
+        
+        <div class="absolute top-20 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-50 opacity-50 blur-3xl z-0"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-50 opacity-50 blur-3xl z-0"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                
+                <div class="text-right reveal">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 border border-brand-100 text-brand-700 font-bold text-sm mb-8">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        مخزون محدث وجاهز للتحميل
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
+                        النظام التقني لتوريد <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-l from-brand-500 to-brand-800">البوليمرات الصناعية</span>
+                    </h1>
+                    <p class="text-lg text-gray-600 mb-10 leading-relaxed max-w-xl">
+                        في "كيمياء نجد"، نقدم واجهة رقمية متقدمة للمصانع لاستعراض المواصفات الفنية للخامات (Data Sheets)، التحقق من توفر المخزون، وإصدار طلبات عروض الأسعار (RFQ) بشكل لحظي.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button onclick="openWizard()" class="px-8 py-4 bg-brand-600 text-white rounded-xl font-bold text-lg hover:bg-brand-700 shadow-xl shadow-brand-500/20 transition-all flex items-center justify-center gap-3">
+                            ابدأ طلب تسعيرة <i class="fa-solid fa-arrow-left-long mt-1"></i>
+                        </button>
+                        <a href="#specs" class="px-8 py-4 bg-white text-gray-700 border-2 border-gray-200 rounded-xl font-bold text-lg hover:border-brand-500 hover:text-brand-600 transition-all flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-microscope text-brand-500"></i> تصفح المواصفات
+                        </a>
+                    </div>
+
+                    <div class="mt-12 grid grid-cols-3 gap-6 border-t border-gray-100 pt-8">
+                        <div>
+                            <div class="text-2xl font-black text-brand-600 mb-1">+<span class="counter" data-target="150">0</span></div>
+                            <div class="text-xs font-bold text-gray-500">مصنع معتمد</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black text-brand-600 mb-1">+<span class="counter" data-target="15">0</span></div>
+                            <div class="text-xs font-bold text-gray-500">درجة كيميائية</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black text-brand-600 mb-1"><span class="counter" data-target="100">0</span>%</div>
+                            <div class="text-xs font-bold text-gray-500">مطابقة للمواصفات</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden lg:block relative reveal reveal-delay-2">
+                    <div class="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 relative z-10">
+                        <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                            <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-server text-brand-500 me-2"></i> حركة المخزون (الأكثر طلباً)</h3>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">متصل</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded bg-brand-100 text-brand-600 flex items-center justify-center font-black text-sm">HD</div>
+                                    <div>
+                                        <div class="font-bold text-gray-900 text-sm">HDPE 5502 - SABIC</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-black text-green-600">متوفر</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm">LL</div>
+                                    <div>
+                                        <div class="font-bold text-gray-900 text-sm">LLDPE 218 - SABIC</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-black text-green-600">متوفر</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 opacity-60">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded bg-red-100 text-red-600 flex items-center justify-center font-black text-sm">LD</div>
+                                    <div>
+                                        <div class="font-bold text-gray-900 text-sm">LDPE 4024 - SABIC</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-black text-red-500">نفد</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 text-center">
+                            <a href="#specs" class="text-xs font-bold text-brand-600 hover:text-brand-800 transition-colors">
+                                عرض الكتالوج الكامل (5 خامات) <i class="fa-solid fa-arrow-down ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute top-10 -right-10 w-full h-full bg-brand-600 rounded-3xl opacity-10 blur-xl z-0 transform rotate-6"></div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="specs" class="py-24 bg-gray-50 relative border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="text-center max-w-3xl mx-auto mb-12 reveal">
+                <span class="text-brand-600 font-bold tracking-wider text-sm mb-2 block uppercase">Technical Specifications</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mb-4">البطاقات الفنية للخامات</h2>
+                <p class="text-gray-600 text-lg">استعرض الخصائص الفيزيائية والكيميائية بدقة لضمان اختيار الدرجة الأنسب لخطوط الإنتاج الخاصة بمصنعك.</p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-3 mb-12 reveal reveal-delay-1">
+                <button class="filter-btn active px-6 py-2 rounded-full border border-gray-300 font-bold text-sm text-gray-600 transition-colors" data-filter="all">جميع الخامات</button>
+                <button class="filter-btn px-6 py-2 rounded-full border border-gray-300 font-bold text-sm text-gray-600 hover:border-brand-500 transition-colors" data-filter="hdpe">HDPE (عالي الكثافة)</button>
+                <button class="filter-btn px-6 py-2 rounded-full border border-gray-300 font-bold text-sm text-gray-600 hover:border-brand-500 transition-colors" data-filter="lldpe">LLDPE (خطي منخفض)</button>
+                <button class="filter-btn px-6 py-2 rounded-full border border-gray-300 font-bold text-sm text-gray-600 hover:border-brand-500 transition-colors" data-filter="film">Film Grades (أفلام)</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="product-grid">
+                
+                <div class="product-item tech-card rounded-2xl border border-gray-200 overflow-hidden reveal reveal-delay-1" data-category="hdpe">
+                    <div class="tech-icon-bg p-6 flex items-center justify-between border-b border-gray-100">
+                        <div class="w-16 h-16 rounded-2xl bg-white border border-brand-100 shadow-sm flex items-center justify-center text-3xl text-brand-600">
+                            <i class="fa-solid fa-flask-vial"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-xs font-black text-gray-400 tracking-widest mb-1" dir="ltr">GRADE</span>
+                            <span class="block text-2xl font-black text-gray-900" dir="ltr">HD 5502</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1 rounded border border-brand-100">سابك (SABIC)</span>
+                            <span class="text-green-600 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> متوفر</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 h-16">بولي إيثيلين عالي الكثافة. مصمم خصيصاً لعمليات القولبة بالنفخ (Blow Molding) للحاويات الكيميائية.</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">الخصائص الأساسية (Typical Values)</h4>
+                            <table class="spec-table w-full text-xs text-gray-600" dir="ltr">
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Melt Flow Rate</td>
+                                        <td class="py-2 text-right">0.35 g/10min</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Density</td>
+                                        <td class="py-2 text-right">955 kg/m³</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Tensile Strength</td>
+                                        <td class="py-2 text-right">28 MPa</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="openWizard('HDPE 5502 - SABIC')" class="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-lg hover:bg-brand-600 transition-colors">طلب تسعير</button>
+                            <button class="w-12 bg-white border border-gray-200 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 hover:text-brand-600 tooltip" title="تحميل ملف المواصفات PDF">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-item tech-card rounded-2xl border border-gray-200 overflow-hidden reveal reveal-delay-2" data-category="lldpe film">
+                    <div class="tech-icon-bg p-6 flex items-center justify-between border-b border-gray-100">
+                        <div class="w-16 h-16 rounded-2xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-3xl text-indigo-600">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-xs font-black text-gray-400 tracking-widest mb-1" dir="ltr">GRADE</span>
+                            <span class="block text-2xl font-black text-gray-900" dir="ltr">LLD 218</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1 rounded border border-brand-100">سابك (SABIC)</span>
+                            <span class="text-green-600 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> متوفر</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 h-16">بولي إيثيلين خطي منخفض الكثافة (Butene Comonomer). ممتاز لتطبيقات أفلام التغليف والأكياس الاستهلاكية.</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">الخصائص الأساسية (Typical Values)</h4>
+                            <table class="spec-table w-full text-xs text-gray-600" dir="ltr">
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 font-semibold">MFI (190°C/2.16kg)</td>
+                                        <td class="py-2 text-right">2.0 g/10min</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Density</td>
+                                        <td class="py-2 text-right">918 kg/m³</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Elmendorf Tear</td>
+                                        <td class="py-2 text-right">High MD/TD</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="openWizard('LLDPE 218 - SABIC')" class="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-lg hover:bg-brand-600 transition-colors">طلب تسعير</button>
+                            <button class="w-12 bg-white border border-gray-200 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 hover:text-brand-600">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-item tech-card rounded-2xl border border-gray-200 overflow-hidden reveal reveal-delay-3" data-category="hdpe film">
+                    <div class="tech-icon-bg p-6 flex items-center justify-between border-b border-gray-100">
+                        <div class="w-16 h-16 rounded-2xl bg-white border border-emerald-100 shadow-sm flex items-center justify-center text-3xl text-emerald-600">
+                            <i class="fa-solid fa-recycle"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-xs font-black text-gray-400 tracking-widest mb-1" dir="ltr">GRADE</span>
+                            <span class="block text-2xl font-black text-gray-900" dir="ltr">TR 144</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1 rounded border border-gray-200">متعدد المصادر</span>
+                            <span class="text-yellow-600 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> كمية محدودة</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 h-16">خامة بولي إيثيلين عالي الكثافة (Film Grade). مصممة لإنتاج أكياس التسوق عالية التحمل ذات السماكة الرقيقة.</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">الخصائص الأساسية (Typical Values)</h4>
+                            <table class="spec-table w-full text-xs text-gray-600" dir="ltr">
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Melt Index</td>
+                                        <td class="py-2 text-right">0.18 g/10min</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Density</td>
+                                        <td class="py-2 text-right">948 kg/m³</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Film Thickness</td>
+                                        <td class="py-2 text-right">Down to 10µm</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="openWizard('HDPE TR 144')" class="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-lg hover:bg-brand-600 transition-colors">طلب تسعير</button>
+                            <button class="w-12 bg-white border border-gray-200 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 hover:text-brand-600">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-item tech-card rounded-2xl border border-gray-200 overflow-hidden reveal" data-category="hdpe">
+                    <div class="tech-icon-bg p-6 flex items-center justify-between border-b border-gray-100">
+                        <div class="w-16 h-16 rounded-2xl bg-white border border-brand-100 shadow-sm flex items-center justify-center text-3xl text-brand-600">
+                            <i class="fa-solid fa-pipe"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-xs font-black text-gray-400 tracking-widest mb-1" dir="ltr">GRADE</span>
+                            <span class="block text-2xl font-black text-gray-900" dir="ltr">P6006</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1 rounded border border-brand-100">سابك (SABIC)</span>
+                            <span class="text-green-600 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> متوفر</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 h-16">بولي إيثيلين عالي الكثافة مخصص لتطبيقات سحب المواسير (Pipe Extrusion) عالية الضغط وتصنيف PE100.</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+                            <h4 class="text-xs font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">الخصائص الأساسية (Typical Values)</h4>
+                            <table class="spec-table w-full text-xs text-gray-600" dir="ltr">
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Melt Flow Rate</td>
+                                        <td class="py-2 text-right">0.23 g/10min</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Density</td>
+                                        <td class="py-2 text-right">959 kg/m³</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 font-semibold">Carbon Black</td>
+                                        <td class="py-2 text-right">≥ 2.0 %</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="openWizard('HDPE Pipe P6006')" class="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-lg hover:bg-brand-600 transition-colors">طلب تسعير</button>
+                            <button class="w-12 bg-white border border-gray-200 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 hover:text-brand-600">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-item tech-card rounded-2xl border border-gray-200 overflow-hidden opacity-70 reveal" data-category="lldpe">
+                    <div class="bg-gray-100 p-6 flex items-center justify-between border-b border-gray-200">
+                        <div class="w-16 h-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-3xl text-gray-400">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-xs font-black text-gray-400 tracking-widest mb-1" dir="ltr">GRADE</span>
+                            <span class="block text-2xl font-black text-gray-500" dir="ltr">LLD 118</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1 rounded border border-brand-100">سابك (SABIC)</span>
+                            <span class="text-red-500 text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-circle-xmark text-[10px]"></i> غير متوفر حالياً</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6 h-16">خامة بولي إيثيلين خطي بخصائص تدفق ممتازة. متوقفة مؤقتاً لحين وصول الشحنة القادمة للمستودعات.</p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+                            <div class="text-center py-4 text-xs font-bold text-gray-400">
+                                <i class="fa-solid fa-lock mb-2 text-lg"></i><br>البيانات الفنية غير متاحة حالياً
+                            </div>
+                        </div>
+
+                        <button onclick="openWizard('طلب إشعار توفر: LLD 118')" class="w-full bg-white border border-gray-300 text-gray-700 text-sm font-bold py-3 rounded-lg hover:bg-gray-50 transition-colors">أعلمني عند التوفر</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="process" class="py-24 bg-white relative overflow-hidden border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16 reveal">
+                <span class="text-brand-600 font-bold tracking-wider text-sm mb-2 block uppercase">Supply Chain Process</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mb-4">كيف ندير دورتك التوريدية؟</h2>
+                <p class="text-gray-600 text-lg">نظام إداري ولوجستي محكم يضمن وصول الخامات لمصنعك بأمان وبدون مفاجآت.</p>
+            </div>
+
+            <div class="timeline-container relative max-w-4xl mx-auto reveal reveal-delay-1">
+                
+                <div class="timeline-item right-timeline mb-12">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow relative z-10">
+                        <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center text-xl mb-4 font-black">1</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">تقديم طلب عرض السعر (RFQ)</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">يقوم المشتري بإرسال الكمية والخامة المطلوبة عبر منصتنا. يقوم النظام فوراً بربط الطلب بقسم المبيعات للتحقق من الرصيد.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item left-timeline mb-12">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow relative z-10">
+                        <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center text-xl mb-4 font-black">2</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">تأكيد السعر وإصدار الفاتورة</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">يتم إرسال عرض سعر رسمي (Quotation) بناءً على أسعار البورصة الحالية. بعد تعميد المشتري، تُصدر الفاتورة المبدئية.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item right-timeline mb-12">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow relative z-10">
+                        <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center text-xl mb-4 font-black">3</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">الجدولة وتجهيز الشحنة</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">بمجرد إتمام الإجراءات المالية، يصدر أمر صرف للمستودع (Delivery Note) ويتم تحميل الطبالي وتجهيزها للنقل.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item left-timeline">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow relative z-10">
+                        <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center text-xl mb-4 font-black"><i class="fa-solid fa-check-double"></i></div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">الاستلام والتوريد للمصنع</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">وصول الشاحنات لمقر العميل مع جميع الأوراق الثبوتية وشهادات المطابقة (COA) الجاهزة للتفريغ في صوامع ومخازن المصنع.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-tech-gray pt-20 pb-10 border-t-8 border-brand-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                
+                <div class="lg:col-span-1">
+                    <div class="bg-white inline-block p-2 rounded-lg mb-6">
+                        <img src="https://i.postimg.cc/BbQr2XLq/kymya-njd.jpg" alt="لوجو كيمياء نجد" class="h-12 w-auto object-contain">
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+                        المورد الرائد لخامات البلاستيك والبوليمرات في المملكة. نربط المصانع المحلية بأفضل المنتجات العالمية لتأمين سلاسل الإمداد.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-lg mb-6">الخامات الرئيسية</h4>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">بولي إيثيلين عالي الكثافة (HDPE)</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">بولي إيثيلين خطي (LLDPE)</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">بولي إيثيلين منخفض الكثافة (LDPE)</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">خامات الحقن والنفخ (Injection/Blow)</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-lg mb-6">الروابط الإدارية</h4>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">بوابة الموردين</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">سياسة المبيعات والشروط</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">شهادات الجودة والمطابقة</a></li>
+                        <li><a href="#" class="hover:text-brand-400 transition-colors">الأسئلة الشائعة (FAQ)</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-lg mb-6">بيانات المركز الرئيسي</h4>
+                    <ul class="space-y-4 text-sm text-gray-400">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-map-location-dot mt-1 text-brand-500"></i>
+                            <span>المملكة العربية السعودية<br>المستودعات المركزية</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-headset text-brand-500"></i>
+                            <span dir="ltr" class="font-bold text-white text-base">+966 50 057 8565</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-envelope text-brand-500"></i>
+                            <span>sales@najdchemicals.com</span>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+                <p>&copy; <span id="current-year"></span> شركة كيمياء نجد للصناعة. جميع الحقوق محفوظة.</p>
+                <div class="flex items-center gap-2">
+                    <span>تصميم النظام التقني:</span>
+                    <span class="font-bold text-gray-400">قسم نظم المعلومات (MIS)</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="wizardModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm opacity-0 invisible transition-all duration-300">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-xl font-black text-gray-900">إنشاء طلب تسعير (RFQ)</h3>
+                <button onclick="closeWizard()" class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-gray-200">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="px-8 pt-6 pb-4">
+                <div class="flex items-center justify-between relative">
+                    <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 z-0 rounded-full"></div>
+                    <div id="progress-bar" class="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-1 bg-brand-600 z-0 transition-all duration-500 rounded-full"></div>
+                    
+                    <div class="step-indicator step-active w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 border-4 border-white shadow-sm" id="indicator-1">1</div>
+                    <div class="step-indicator step-inactive w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 border-4 border-white shadow-sm" id="indicator-2">2</div>
+                    <div class="step-indicator step-inactive w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 border-4 border-white shadow-sm" id="indicator-3">3</div>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-gray-500 mt-2 px-1">
+                    <span>الخامة</span>
+                    <span>الشركة</span>
+                    <span>تأكيد</span>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-grow bg-white">
+                <form id="rfq-form" onsubmit="submitWizard(event)">
+                    
+                    <div id="step-1" class="wizard-panel active">
+                        <h4 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">تفاصيل الطلبية</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-bold text-gray-700">الخامة المطلوبة <span class="text-red-500">*</span></label>
+                                <select id="wiz-product" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-bold text-gray-700" required>
+                                    <option value="">-- اختر الخامة --</option>
+                                    <option value="HDPE 5502">HDPE 5502 - سابك</option>
+                                    <option value="LLDPE 218">LLDPE 218 - سابك</option>
+                                    <option value="HDPE TR 144">HDPE TR 144 - متعدد</option>
+                                    <option value="HDPE P6006">HDPE P6006 Pipe - سابك</option>
+                                    <option value="Other">أخرى (أرغب في الاستفسار)</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-bold text-gray-700">الكمية المقدرة <span class="text-red-500">*</span></label>
+                                    <input type="number" id="wiz-qty" required min="1" class="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500" placeholder="مثال: 25">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-bold text-gray-700">الوحدة</label>
+                                    <select class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-600 font-bold pointer-events-none">
+                                        <option value="ton">طن متري (MT)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 text-left">
+                            <button type="button" onclick="nextStep(1)" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-bold shadow-md">التالي <i class="fa-solid fa-arrow-left ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="step-2" class="wizard-panel">
+                        <h4 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">بيانات المصنع / الشركة</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-bold text-gray-700">الاسم التجاري للمصنع <span class="text-red-500">*</span></label>
+                                <input type="text" id="wiz-company" required class="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500" placeholder="اسم شركتك الرسمي">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-bold text-gray-700">رقم جوال المشتريات <span class="text-red-500">*</span></label>
+                                    <input type="tel" id="wiz-phone" dir="ltr" required class="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 text-left" placeholder="05x xxx xxxx">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-bold text-gray-700">المدينة (لمعرفة رسوم النقل)</label>
+                                    <input type="text" id="wiz-city" class="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500" placeholder="مثال: الرياض، جدة">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-between">
+                            <button type="button" onclick="prevStep(2)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-arrow-right me-2"></i> السابق</button>
+                            <button type="button" onclick="nextStep(2)" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-bold shadow-md">التالي <i class="fa-solid fa-arrow-left ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="step-3" class="wizard-panel">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-blue-50 text-brand-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </div>
+                            <h4 class="text-lg font-black text-gray-900">مراجعة الطلب</h4>
+                            <p class="text-sm text-gray-500">يرجى التأكد من البيانات قبل إصدار الطلب للنظام.</p>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm mb-6 space-y-3">
+                            <div class="flex justify-between border-b border-gray-200 pb-2">
+                                <span class="text-gray-500 font-bold">الخامة:</span>
+                                <span class="text-gray-900 font-black" id="summary-product">-</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-200 pb-2">
+                                <span class="text-gray-500 font-bold">الكمية:</span>
+                                <span class="text-gray-900 font-black"><span id="summary-qty">-</span> طن</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-200 pb-2">
+                                <span class="text-gray-500 font-bold">المصنع:</span>
+                                <span class="text-gray-900 font-black" id="summary-company">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 font-bold">التواصل:</span>
+                                <span class="text-gray-900 font-black" id="summary-phone" dir="ltr">-</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 flex justify-between">
+                            <button type="button" onclick="prevStep(3)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-arrow-right me-2"></i> تعديل</button>
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-black shadow-lg shadow-green-500/30 flex items-center gap-2">
+                                إرسال التعميد <i class="fa-solid fa-check"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="success-toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 z-[200] opacity-0 translate-y-10 pointer-events-none transition-all duration-500">
+        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white text-xl shadow-inner">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-sm">تم استلام طلب التسعير بنجاح!</h4>
+            <p class="text-xs text-gray-300">رقم الطلب المرجعي: <span class="font-mono text-brand-300">#REQ-8821</span></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        const mobileBtn = document.getElementById('mobile-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            const icon = mobileBtn.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.className = 'fa-solid fa-bars-staggered';
+            } else {
+                icon.className = 'fa-solid fa-xmark';
+            }
+        });
+
+        const observerOptions = { root: null, threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    
+                    const counters = entry.target.querySelectorAll('.counter');
+                    if(counters.length > 0) {
+                        counters.forEach(counter => {
+                            const target = +counter.getAttribute('data-target');
+                            const duration = 2000;
+                            const increment = target / (duration / 16);
+                            let current = 0;
+                            
+                            const updateCounter = () => {
+                                current += increment;
+                                if (current < target) {
+                                    counter.innerText = Math.ceil(current);
+                                    requestAnimationFrame(updateCounter);
+                                } else {
+                                    counter.innerText = target;
+                                }
+                            };
+                            updateCounter();
+                            counter.classList.remove('counter'); 
+                        });
+                    }
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const productItems = document.querySelectorAll('.product-item');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-brand-600', 'text-white', 'border-brand-600');
+                    b.classList.add('text-gray-600', 'border-gray-300');
+                });
+                btn.classList.add('active', 'bg-brand-600', 'text-white', 'border-brand-600');
+                btn.classList.remove('text-gray-600', 'border-gray-300');
+
+                const filterValue = btn.getAttribute('data-filter');
+
+                productItems.forEach(item => {
+                    if (filterValue === 'all' || item.getAttribute('data-category').includes(filterValue)) {
+                        item.classList.remove('hidden-item');
+                        setTimeout(() => { item.style.display = 'block'; }, 50);
+                    } else {
+                        item.classList.add('hidden-item');
+                        setTimeout(() => { item.style.display = 'none'; }, 400); 
+                    }
+                });
+            });
+        });
+
+        const wizardModal = document.getElementById('wizardModal');
+        let currentStep = 1;
+
+        function openWizard(productName = '') {
+            wizardModal.classList.remove('invisible', 'opacity-0');
+            document.body.style.overflow = 'hidden';
+            
+            const selectEl = document.getElementById('wiz-product');
+            if(productName) {
+                for(let i=0; i<selectEl.options.length; i++) {
+                    if(selectEl.options[i].text.includes(productName) || selectEl.options[i].value === productName) {
+                        selectEl.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            goToStep(1);
+        }
+
+        function closeWizard() {
+            wizardModal.classList.add('opacity-0');
+            setTimeout(() => { wizardModal.classList.add('invisible'); }, 300);
+            document.body.style.overflow = 'auto';
+        }
+
+        function updateIndicators(step) {
+            const progressBar = document.getElementById('progress-bar');
+            if(step === 1) progressBar.style.width = '0%';
+            if(step === 2) progressBar.style.width = '50%';
+            if(step === 3) progressBar.style.width = '100%';
+
+            for(let i=1; i<=3; i++) {
+                const ind = document.getElementById(`indicator-${i}`);
+                ind.className = 'step-indicator w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 border-4 border-white shadow-sm ';
+                
+                if(i < step) {
+                    ind.classList.add('step-completed');
+                    ind.innerHTML = '<i class="fa-solid fa-check"></i>';
+                } else if(i === step) {
+                    ind.classList.add('step-active');
+                    ind.innerHTML = i;
+                } else {
+                    ind.classList.add('step-inactive');
+                    ind.innerHTML = i;
+                }
+            }
+        }
+
+        function goToStep(step) {
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            
+            updateIndicators(step);
+            currentStep = step;
+
+            if(step === 3) {
+                const selProd = document.getElementById('wiz-product');
+                document.getElementById('summary-product').innerText = selProd.options[selProd.selectedIndex].text;
+                document.getElementById('summary-qty').innerText = document.getElementById('wiz-qty').value;
+                document.getElementById('summary-company').innerText = document.getElementById('wiz-company').value;
+                document.getElementById('summary-phone').innerText = document.getElementById('wiz-phone').value;
+            }
+        }
+
+        function nextStep(current) {
+            const panel = document.getElementById(`step-${current}`);
+            const inputs = panel.querySelectorAll('input[required], select[required]');
+            let valid = true;
+            
+            inputs.forEach(input => {
+                if(!input.value) {
+                    valid = false;
+                    input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+                } else {
+                    input.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+                }
+            });
+
+            if(valid) goToStep(current + 1);
+        }
+
+        function prevStep(current) {
+            goToStep(current - 1);
+        }
+
+        function submitWizard(e) {
+            e.preventDefault();
+            closeWizard();
+            
+            const toast = document.getElementById('success-toast');
+            toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            
+            e.target.reset();
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
